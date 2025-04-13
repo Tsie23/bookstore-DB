@@ -55,7 +55,7 @@ CREATE TABLE book_author (
 CREATE TABLE country (
      country_id INT PRIMARY KEY AUTO_INCREMENT,
      country_name VARCHAR(100) NOT NULL,
-     country_code CHAR(2) NOT NULL
+     country_code CHAR(3) NOT NULL
 );
 
 -- Address Status
