@@ -97,3 +97,98 @@ CREATE TABLE customer_address (
      FOREIGN KEY (status_id) REFERENCES address_status(status_id)
 );
 
+-- Shipping Method
+CREATE TABLE shipping_method (
+    method_id INT PRIMARY KEY AUTO_INCREMENT,
+    method_name VARCHAR(50) NOT NULL,
+    cost DECIMAL(10,2) NOT NULL
+);
+
+-- Order Status
+CREATE TABLE order_status (
+    status_id INT PRIMARY KEY AUTO_INCREMENT,
+    status_value VARCHAR(20) NOT NULL
+);
+
+-- Customer Order
+CREATE TABLE cust_order (
+    order_id INT PRIMARY KEY AUTO_INCREMENT,
+    customer_id INT NOT NULL,
+    order_date DATETIME DEFAULT CURRENT_TIMESTAMP,
+    shipping_method_id INT NOT NULL,
+    dest_address_id INT NOT NULL,
+    FOREIGN KEY (customer_id) REFERENCES customer(customer_id),
+    FOREIGN KEY (shipping_method_id) REFERENCES shipping_method(method_id),
+    FOREIGN KEY (dest_address_id) REFERENCES address(address_id)
+);
+
+-- Order Line
+CREATE TABLE order_line (
+    line_id INT PRIMARY KEY AUTO_INCREMENT,
+    order_id INT NOT NULL,
+    book_id INT NOT NULL,
+    quantity INT NOT NULL,
+    price DECIMAL(10,2) NOT NULL,
+    FOREIGN KEY (order_id) REFERENCES cust_order(order_id),
+    FOREIGN KEY (book_id) REFERENCES book(book_id)
+);
+
+-- Order History
+CREATE TABLE order_history (
+    history_id INT PRIMARY KEY AUTO_INCREMENT,
+    order_id INT NOT NULL,
+    status_id INT NOT NULL,
+    status_date DATETIME DEFAULT CURRENT_TIMESTAMP,
+    notes TEXT,
+    FOREIGN KEY (order_id) REFERENCES cust_order(order_id),
+    FOREIGN KEY (status_id) REFERENCES order_status(status_id)
+);
+
+-- sample data for demonstration
+INSERT INTO book_language (language_code, language_name) VALUES 
+('EN', 'English'), ('FR', 'French'), ('ES', 'Spanish');
+
+INSERT INTO publisher (publisher_name) VALUES 
+('Penguin Random House'), ('HarperCollins'), ('Simon & Schuster');
+
+INSERT INTO author (first_name, last_name) VALUES 
+('George', 'Orwell'), ('J.K.', 'Rowling'), ('Stephen', 'King');
+
+
+-- admin user with full privileges
+CREATE USER 'bookstore_admin'@'localhost' IDENTIFIED BY 'secure_password';
+GRANT ALL PRIVILEGES ON BookStore.* TO 'bookstore_admin'@'localhost';
+
+-- read-only user for reports
+CREATE USER 'bookstore_report'@'localhost' IDENTIFIED BY 'readonly_pass';
+GRANT SELECT ON BookStore.* TO 'bookstore_report'@'localhost';
+
+-- customer service user with limited access
+CREATE USER 'bookstore_cs'@'localhost' IDENTIFIED BY 'service_pass';
+GRANT SELECT, INSERT, UPDATE ON BookStore.customer TO 'bookstore_cs'@'localhost';
+GRANT SELECT, INSERT, UPDATE ON BookStore.address TO 'bookstore_cs'@'localhost';
+GRANT SELECT, INSERT, UPDATE ON BookStore.customer_address TO 'bookstore_cs'@'localhost';
+GRANT SELECT ON BookStore.cust_order TO 'bookstore_cs'@'localhost';
+
+
+--Sample Queries
+-- Find all books by a specific author
+SELECT b.title, b.price 
+FROM book b
+JOIN book_author ba ON b.book_id = ba.book_id
+JOIN author a ON ba.author_id = a.author_id
+WHERE a.last_name = 'Rowling';
+
+-- Get customer order history
+SELECT c.first_name, c.last_name, co.order_date, 
+       SUM(ol.quantity * ol.price) AS total_amount
+FROM customer c
+JOIN cust_order co ON c.customer_id = co.customer_id
+JOIN order_line ol ON co.order_id = ol.order_id
+GROUP BY co.order_id;
+
+-- Check inventory status
+SELECT b.title, b.stock_quantity
+FROM book b
+WHERE b.stock_quantity < 5;
+
